@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard Arsip</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f4f6f9;
+    }
+
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 15px 30px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .cards {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      flex: 1;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #888;
+    }
+
+    .card p {
+      font-size: 24px;
+      margin: 10px 0 0;
+      font-weight: bold;
+    }
+
+    .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        height: 450px; 
+        }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+  font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background: #2c3e50;
+      color: white;
+    }
+
+    button {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+button:hover {
+  background: #2980b9;
+}
+
+.toggle-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+  </style>
+</head>
+
+<body>
+
+<header>Dashboard Arsip</header>
+
+<div class="container">
+
+  <!-- CARD -->
+  <div class="cards">
+    <div class="card">
+      <h3>Total Arsip</h3>
+      <p id="total">0</p>
+    </div>
+    <div class="card">
+      <h3>Total Tahun</h3>
+      <p id="tahunCount">0</p>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-container">
+    <canvas id="myChart"></canvas>
+  </div>
+
+  <!-- BUTTON -->
+<div class="toggle-container">
+  <button onclick="toggleTable()" id="btnToggle">
+    Lihat Data
+  </button>
+</div>
+
+    <!-- TABLE WRAPPER -->
+    <div id="tableWrapper" style="display: none; margin-top:40px;">
+    <table id="dataTable">
+        <thead>
+        <tr>
+            <th>No</th>
+            <th>Jenis Arsip</th>
+            <th>Uraian</th>
+            <th>Tahun</th>
+            <th>Jumlah</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    </div>
+
+</div>
+
+<script>
+async function loadData() {
+
+  const url = "https://docs.google.com/spreadsheets/d/1nxImhgxczvgjaClI6DOLpSKsVFZleKWe/gviz/tq?tqx=out:json&gid=187873921";
+
+  const res = await fetch(url);
+  const text = await res.text();
+
+  const json = JSON.parse(text.substring(47).slice(0, -2));
+  const rows = json.table.rows;
+
+  const yearMap = {};
+  let total = 0;
+
+  const tbody = document.querySelector("#dataTable tbody");
+
+  rows.forEach((r) => {
+    const no = r.c[0]?.v;
+    const jenis = r.c[1]?.v;
+    const uraian = r.c[2]?.v;
+    const tahun = r.c[4]?.v;
+    const jumlah = r.c[5]?.v;
+
+    // ===== GROUPING PER TAHUN =====
+    if (tahun && jumlah) {
+      if (!yearMap[tahun]) {
+        yearMap[tahun] = 0;
+      }
+      yearMap[tahun] += jumlah;
+      total += jumlah;
+    }
+
+    // ===== ISI TABEL =====
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${no || ""}</td>
+      <td>${jenis || ""}</td>
+      <td>${uraian || ""}</td>
+      <td>${tahun || ""}</td>
+      <td>${jumlah || ""}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // ===== SORT & LIMIT DATA =====
+  const labels = Object.keys(yearMap)
+    .sort((a, b) => a - b)     // urut tahun
+    .slice(-10);               // ambil 10 tahun terakhir
+
+  const data = labels.map(t => yearMap[t]);
+
+  // ===== UPDATE CARD =====
+  document.getElementById("total").innerText = total;
+  document.getElementById("tahunCount").innerText = Object.keys(yearMap).length;
+
+  // ===== CHART =====
+  new Chart(document.getElementById("myChart"), {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Jumlah Arsip per Tahun",
+        data: data
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function toggleTable() {
+  const table = document.getElementById("tableWrapper");
+  const btn = document.getElementById("btnToggle");
+
+  if (table.style.display === "none") {
+    table.style.display = "block";
+    btn.innerText = "Sembunyikan Data";
+  } else {
+    table.style.display = "none";
+    btn.innerText = "Lihat Data";
+  }
+}
+
+loadData();
+</script>
+
+</body>
+</html>
