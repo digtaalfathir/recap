@@ -8,11 +8,11 @@
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      background: #f4f6f9;
+      background: #f8f5f0;
     }
 
     header {
-      background: #2c3e50;
+      background: #6f5e53;
       color: white;
       padding: 15px 30px;
       font-size: 20px;
@@ -21,6 +21,15 @@
 
     .container {
       padding: 20px;
+    }
+
+    .topbar {
+      margin-bottom: 20px;
+    }
+
+    select {
+      padding: 8px;
+      border-radius: 6px;
     }
 
     .cards {
@@ -50,54 +59,42 @@
     }
 
     .chart-container {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        height: 450px; 
-        }
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      height: 350px;
+    }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-top: 10px;
-  font-size: 14px;
+      margin-top: 20px;
     }
 
     th, td {
       padding: 10px;
       border-bottom: 1px solid #ddd;
-      text-align: left;
     }
 
     th {
-      background: #2c3e50;
+      background: #6f5e53;
       color: white;
     }
 
     button {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
+      margin-top: 20px;
+      padding: 10px 15px;
+      border-radius: 6px;
+      border: none;
+      background: #c8a97e;
+      color: white;
+      cursor: pointer;
+    }
 
-button:hover {
-  background: #2980b9;
-}
-
-.toggle-container {
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
-}
+    button:hover {
+      background: #b8966d;
+    }
   </style>
 </head>
 
@@ -107,10 +104,18 @@ button:hover {
 
 <div class="container">
 
+  <!-- DROPDOWN -->
+  <div class="topbar">
+    <select id="sheetSelector" onchange="loadData()">
+      <option value="GLOBAL">GLOBAL</option>
+      <option value="TPP">UNDANGAN SIDANG TPP</option>
+    </select>
+  </div>
+
   <!-- CARD -->
   <div class="cards">
     <div class="card">
-      <h3>Total Arsip</h3>
+      <h3>Total Data</h3>
       <p id="total">0</p>
     </div>
     <div class="card">
@@ -124,39 +129,60 @@ button:hover {
     <canvas id="myChart"></canvas>
   </div>
 
-  <!-- BUTTON -->
-<div class="toggle-container">
-  <button onclick="toggleTable()" id="btnToggle">
-    Lihat Data
-  </button>
-</div>
+  <button onclick="toggleTable()">Toggle Table</button>
 
-    <!-- TABLE WRAPPER -->
-    <div id="tableWrapper" style="display: none; margin-top:40px;">
-    <table id="dataTable">
-        <thead>
-        <tr>
-            <th>No</th>
-            <th>Jenis Arsip</th>
-            <th>Uraian</th>
-            <th>Tahun</th>
-            <th>Jumlah</th>
-        </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    </div>
+  <table id="dataTable" style="display:none;">
+    <thead>
+      <tr id="tableHead"></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
 </div>
 
 <script>
+const SPREADSHEET_ID = "1nxImhgxczvgjaClI6DOLpSKsVFZleKWe";
+
+const CONFIG = {
+  GLOBAL: {
+    gid: "187873921",
+    columns: {
+      no: 0,
+      jenis: 1,
+      uraian: 2,
+      tahun: 4,
+      jumlah: 5
+    },
+    headers: ["No", "Jenis Arsip", "Uraian", "Tahun", "Jumlah"],
+    hasJumlah: true
+  },
+
+  TPP: {
+    gid: "1891241188",
+    columns: {
+      no: 0,
+      nomor: 1,
+      perihal: 2,
+      asal: 3,
+      tahun: 4
+    },
+    headers: ["No", "Nomor Laporan", "Perihal", "Asal", "Tahun"],
+    hasJumlah: false
+  }
+};
+
+let chart;
+let renderTable = false;
+
 async function loadData() {
 
-  const url = "https://docs.google.com/spreadsheets/d/1nxImhgxczvgjaClI6DOLpSKsVFZleKWe/gviz/tq?tqx=out:json&gid=187873921";
+  const selected = document.getElementById("sheetSelector").value;
+  const cfg = CONFIG[selected];
+
+  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${cfg.gid}`;
 
   const res = await fetch(url);
   const text = await res.text();
-
   const json = JSON.parse(text.substring(47).slice(0, -2));
   const rows = json.table.rows;
 
@@ -164,54 +190,83 @@ async function loadData() {
   let total = 0;
 
   const tbody = document.querySelector("#dataTable tbody");
+  const thead = document.getElementById("tableHead");
 
-  rows.forEach((r) => {
-    const no = r.c[0]?.v;
-    const jenis = r.c[1]?.v;
-    const uraian = r.c[2]?.v;
-    const tahun = r.c[4]?.v;
-    const jumlah = r.c[5]?.v;
+  tbody.innerHTML = "";
+  thead.innerHTML = "";
+  let html = "";
 
-    // ===== GROUPING PER TAHUN =====
-    if (tahun && jumlah) {
-      if (!yearMap[tahun]) {
-        yearMap[tahun] = 0;
-      }
-      yearMap[tahun] += jumlah;
+  cfg.headers.forEach(h => {
+    thead.innerHTML += `<th>${h}</th>`;
+  });
+
+  rows.forEach(r => {
+
+    if (!r.c) return;
+
+    let no = r.c[cfg.columns.no]?.v;
+    let tahun = r.c[cfg.columns.tahun]?.v;
+    let rawJumlah = r.c[cfg.columns.jumlah]?.v;
+
+    if (!no || !tahun) return;
+
+    let jumlah = cfg.hasJumlah
+      ? Number(rawJumlah || 0)
+      : 1;
+
+    if (!isNaN(jumlah) && jumlah > 0) {
       total += jumlah;
     }
 
-    // ===== ISI TABEL =====
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${no || ""}</td>
-      <td>${jenis || ""}</td>
-      <td>${uraian || ""}</td>
-      <td>${tahun || ""}</td>
-      <td>${jumlah || ""}</td>
-    `;
-    tbody.appendChild(tr);
+    if (!isNaN(jumlah)) {
+      yearMap[tahun] = (yearMap[tahun] || 0) + jumlah;
+    }
+
+    let tr = "<tr>";
+
+    if (selected === "GLOBAL") {
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.jenis]?.v || ""}</td>
+        <td>${r.c[cfg.columns.uraian]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else {
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.nomor]?.v || ""}</td>
+        <td>${r.c[cfg.columns.perihal]?.v || ""}</td>
+        <td>${r.c[cfg.columns.asal]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+      `;
+    }
+
+    tr += "</tr>";
+    html += tr;
   });
 
-  // ===== SORT & LIMIT DATA =====
-  const labels = Object.keys(yearMap)
-    .sort((a, b) => a - b)     // urut tahun
-    .slice(-10);               // ambil 10 tahun terakhir
+  if (renderTable) {
+    tbody.innerHTML = html;
+  }
 
-  const data = labels.map(t => yearMap[t]);
+  const labels = Object.keys(yearMap).sort();
+  const data = labels.map(y => yearMap[y]);
 
-  // ===== UPDATE CARD =====
   document.getElementById("total").innerText = total;
-  document.getElementById("tahunCount").innerText = Object.keys(yearMap).length;
+  document.getElementById("tahunCount").innerText = labels.length;
 
-  // ===== CHART =====
-  new Chart(document.getElementById("myChart"), {
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("myChart"), {
     type: "bar",
     data: {
-      labels: labels,
+      labels,
       datasets: [{
-        label: "Jumlah Arsip per Tahun",
-        data: data
+        label: selected,
+        data,
+        backgroundColor: "#c8a97e",
+        borderRadius: 6
       }]
     },
     options: {
@@ -222,19 +277,24 @@ async function loadData() {
 }
 
 function toggleTable() {
-  const table = document.getElementById("tableWrapper");
-  const btn = document.getElementById("btnToggle");
+  renderTable = !renderTable;
 
-  if (table.style.display === "none") {
-    table.style.display = "block";
-    btn.innerText = "Sembunyikan Data";
+  const table = document.getElementById("dataTable");
+
+  if (renderTable) {
+    table.style.display = "table";
   } else {
     table.style.display = "none";
-    btn.innerText = "Lihat Data";
   }
+
+  loadData(); 
 }
 
 loadData();
+
+setInterval(() => {
+  loadData();
+}, 15000); // 30 detik
 </script>
 
 </body>
