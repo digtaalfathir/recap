@@ -170,7 +170,8 @@
     /* animasi buka tutup */
     .table-wrapper {
       max-height: 0;
-      overflow: hidden;
+      overflow-x: auto;   /* 🔥 penting */
+      overflow-y: hidden; /* tetap hide vertical */
       transition: max-height 0.4s ease;
     }
 
@@ -229,6 +230,7 @@
 
       /* TABLE SCROLL */
       .table-wrapper {
+        -webkit-overflow-scrolling: touch;
         overflow-x: auto;
       }
 
