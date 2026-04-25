@@ -11,12 +11,36 @@
       background: #f8f5f0;
     }
 
-    header {
+    .header {
+      position: sticky; /* 🔥 bikin nempel */
+      top: 0;
+      z-index: 1000;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
       background: #6f5e53;
       color: white;
+
       padding: 15px 30px;
       font-size: 20px;
       font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .header-left {
+      font-size: 20px;
+    }
+
+    .header-right select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #f3e9dc;
+      color: #333;
+      font-size: 14px;
+      cursor: pointer;
     }
 
     .container {
@@ -62,7 +86,7 @@
       background: white;
       padding: 20px;
       border-radius: 10px;
-      height: 350px;
+      height: 500px;
     }
 
     table {
@@ -70,16 +94,40 @@
       border-collapse: collapse;
       background: white;
       margin-top: 20px;
+      table-layout: auto; /* 🔥 penting */
+      min-width: 800px;
     }
 
     th, td {
       padding: 10px;
       border-bottom: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top; /* biar teks panjang rapi */
     }
 
     th {
       background: #6f5e53;
       color: white;
+    }
+
+    td {
+      word-break: break-word; /* 🔥 biar gak meluber */
+    }
+
+    th:nth-child(1), td:nth-child(1) {
+      width: 60px;
+    }
+
+    th:nth-child(2), td:nth-child(2) {
+      width: 150px;
+    }
+
+    th:nth-child(4), td:nth-child(4) {
+      width: 80px;
+    }
+
+    th:nth-child(5), td:nth-child(5) {
+      width: 80px;
     }
 
     button {
@@ -95,22 +143,69 @@
     button:hover {
       background: #b8966d;
     }
+
+    .toggle-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+
+      margin: 20px auto;
+      cursor: pointer;
+
+      color: #6f5e53;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+
+    .toggle-wrapper:hover {
+      opacity: 0.7;
+    }
+
+    #toggleIcon {
+      font-size: 18px;
+      transition: transform 0.3s ease;
+    }
+
+    /* animasi buka tutup */
+    .table-wrapper {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+
+    .table-wrapper.open {
+      max-height: 1000px;
+    }
   </style>
 </head>
 
 <body>
 
-<header>Dashboard Arsip</header>
+<header class="header">
+  <div class="header-left">
+    Dashboard Arsip
+  </div>
 
-<div class="container">
-
-  <!-- DROPDOWN -->
-  <div class="topbar">
+  <div class="header-right">
     <select id="sheetSelector" onchange="loadData()">
       <option value="GLOBAL">GLOBAL</option>
       <option value="TPP">UNDANGAN SIDANG TPP</option>
+      <option value="LITMAS">LITMAS</option>
+      <option value="SPB">SURAT PENGAKHIRAN BIMBINGAN</option>
+      <option value="SPerB">SURAT PERKEMBANGAN BIMBINGAN</option>
+      <option value="PB">PB, CB, CMB</option>
+      <option value="LPK">LAPORAN PENERIMAAN KLIEN</option>
+      <option value="BASW">BERITA ACARA SERAH WBP</option>
+      <option value="AAS">ABSENSI APEL SIANG</option>
+      <option value="ACMK">ASIMILASI, CUTI MANGUN KELUARGA</option>
+      <option value="LD">LEMBAR DISPOSISI</option>
+      <option value="LB">LAPORAN BULANAN</option>
     </select>
   </div>
+</header>
+
+<div class="container">
 
   <!-- CARD -->
   <div class="cards">
@@ -129,14 +224,19 @@
     <canvas id="myChart"></canvas>
   </div>
 
-  <button onclick="toggleTable()">Toggle Table</button>
+  <div class="toggle-wrapper" onclick="toggleTable()">
+    <span id="toggleIcon">▼</span>
+    <span id="toggleText">Lihat Tabel</span>
+  </div>
 
-  <table id="dataTable" style="display:none;">
-    <thead>
-      <tr id="tableHead"></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div id="tableWrapper" class="table-wrapper">
+    <table id="dataTable">
+      <thead>
+        <tr id="tableHead"></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
 </div>
 
@@ -168,6 +268,135 @@ const CONFIG = {
     },
     headers: ["No", "Nomor Laporan", "Perihal", "Asal", "Tahun"],
     hasJumlah: false
+  },
+
+  LITMAS: {
+    gid: "807152532",
+    columns: {
+      no: 0,
+      jenis: 1,
+      uraian: 2,
+      tahun: 7,
+      jumlah: 8
+    },
+    headers: ["No", "Jenis", "Uraian", "Tahun", "Jumlah"],
+    hasJumlah: true
+  },
+
+  SPB: {
+    gid: "1856043793", // ⬅️ ambil dari URL sheet ini
+    columns: {
+      no: 0,
+      jenis: 1,
+      uraian: 2,
+      tahun: 8,   // ⚠️ ini beda dari LITMAS
+      jumlah: 9   // "1 BERKAS"
+    },
+    headers: ["No", "Jenis", "Uraian", "Tahun", "Jumlah"],
+    hasJumlah: true
+  },
+
+  SPerB: {
+    gid: "1353456894", // ⬅️ ambil dari URL sheet ini
+    columns: {
+      no: 0,
+      jenis: 1,
+      uraian: 2,
+      tahun: 7,   // ⚠️ ini beda dari LITMAS
+      jumlah: 8   // "1 BERKAS"
+    },
+    headers: ["No", "Jenis", "Uraian", "Tahun", "Jumlah"],
+    hasJumlah: true
+  },
+
+  PB: {
+    gid: "1965584373", // GID untuk sheet PB, CB, CMB (ganti dengan yang benar)
+    columns: {
+      no: 0,
+      jenis: 1,
+      uraian: 2,
+      tahun: 8,
+      jumlah: 9
+    },
+    headers: ["No", "Jenis", "Uraian", "Tahun", "Jumlah"],
+    hasJumlah: true
+  },
+
+  LPK: {
+    gid: "663703572",
+    columns: {
+      no: 0,
+      nomor: 1,
+      perihal: 2,
+      asal: 3,
+      tahun: 4
+    },
+    headers: ["No", "Nomor", "Perihal", "Asal", "Tahun"],
+    hasJumlah: false
+  },
+
+  BASW: {
+    gid: "448587782", // GID untuk sheet BASW (ganti dengan yang benar)
+    columns: {
+      no: 0,
+      nomor: 1,
+      perihal: 2,
+      asal: 3,
+      tahun: 4,
+      jumlah: 5
+    },
+    headers: ["No", "Nomor", "Perihal", "Asal", "Tahun", "Jumlah"],
+    hasJumlah: false
+  },
+
+  AAS: {
+    gid: "375230911", // GID untuk sheet AAS (ganti dengan yang benar)
+    columns: {
+      no: 0,
+      perihal: 1,
+      asal: 2,
+      tahun: 3
+    },
+    headers: ["No", "Perihal", "Asal", "Tahun"],
+    hasJumlah: false
+  },
+
+  ACMK: {
+    gid: "1924348227", // GID untuk sheet ACMK (ganti dengan yang benar)
+    columns: {
+      no: 0,
+      register: 4,
+      nama: 5,
+      tahun: 9,
+      jumlah: 10
+    },
+    headers: ["No", "Register", "Nama", "Tahun", "Jumlah"],
+    hasJumlah: true
+  },
+
+  LD: { // GID untuk sheet Lembar Disposisi (ganti dengan yang benar)
+    gid: "1135481047",
+    columns: {
+      no: 0,
+      instansi: 1,
+      perihal: 3,
+      tahun: 6
+    },
+    headers: ["No", "Nomor", "Perihal", "Tahun"],
+    hasJumlah: false
+  },
+
+  LB: { // GID untuk sheet Laporan Bulanan (ganti dengan yang benar)
+    gid: "132597725", // GID untuk sheet Laporan Bulanan (ganti dengan yang benar)
+    columns: {
+      no: 0,
+      jenis: 1,
+      uraian: 2,
+      tahun: 7,
+      jumlah: 8
+    },
+    headers: ["No", "Jenis", "Uraian", "Tahun", "Jumlah"],
+    hasJumlah: true
   }
 };
 
@@ -208,11 +437,63 @@ async function loadData() {
     let tahun = r.c[cfg.columns.tahun]?.v;
     let rawJumlah = r.c[cfg.columns.jumlah]?.v;
 
-    if (!no || !tahun) return;
+    if (selected === "GLOBAL") {
+      if (!no || !tahun) return;
+    }
 
-    let jumlah = cfg.hasJumlah
-      ? Number(rawJumlah || 0)
-      : 1;
+    if (selected === "TPP") {
+      if (!no || !tahun) return;
+    }
+
+    if (selected === "LITMAS") {
+      if (!tahun) return;
+    }
+
+    if (selected === "SPB") {
+      if (!tahun) return;
+    }
+
+    if (selected === "SPerB") {
+      if (!tahun) return;
+    }
+
+    if (selected === "PB") {
+      if (!tahun) return;
+    }
+
+    if (selected === "LPK") {
+      if (!tahun) return;
+    }
+
+    if (selected === "BASW") {
+      if (!tahun) return;
+    }
+
+    if (selected === "AAS") {
+      if (!tahun) return;
+    }
+
+    if (selected === "ACMK") {
+      if (!tahun) return;
+    }
+
+    if (selected === "LD") {
+      if (!tahun) return;
+    }
+
+    if (selected === "LB") {
+      if (!tahun) return;
+    }
+
+    let jumlah;
+
+    if (selected === "LITMAS" || selected === "SPB" || selected === "SPerB" || selected === "PB" || selected === "LPK" || selected === "AAS" || selected === "ACMK" || selected === "LD" || selected === "LB") {
+      jumlah = 1;
+    } else {
+      jumlah = cfg.hasJumlah
+        ? Number(rawJumlah || 0)
+        : 1;
+    }
 
     if (!isNaN(jumlah) && jumlah > 0) {
       total += jumlah;
@@ -232,13 +513,105 @@ async function loadData() {
         <td>${tahun || ""}</td>
         <td>${jumlah || ""}</td>
       `;
-    } else {
+
+    } else if (selected === "TPP") {
+
       tr += `
         <td>${no || ""}</td>
         <td>${r.c[cfg.columns.nomor]?.v || ""}</td>
         <td>${r.c[cfg.columns.perihal]?.v || ""}</td>
         <td>${r.c[cfg.columns.asal]?.v || ""}</td>
         <td>${tahun || ""}</td>
+      `;
+
+    } else if (selected === "LITMAS") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.jenis]?.v || ""}</td>
+        <td>${r.c[cfg.columns.uraian]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else if (selected === "SPB") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.jenis]?.v || ""}</td>
+        <td>${r.c[cfg.columns.uraian]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else if (selected === "SPerB") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.jenis]?.v || ""}</td>
+        <td>${r.c[cfg.columns.uraian]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else if (selected === "PB") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.jenis]?.v || ""}</td>
+        <td>${r.c[cfg.columns.uraian]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else if (selected === "LPK") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.nomor]?.v || ""}</td>
+        <td>${r.c[cfg.columns.perihal]?.v || ""}</td>
+        <td>${r.c[cfg.columns.asal]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+      `;
+    } else if (selected === "BASW") {
+  
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.nomor]?.v || ""}</td>
+        <td>${r.c[cfg.columns.perihal]?.v || ""}</td>
+        <td>${r.c[cfg.columns.asal]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else if (selected === "AAS") {
+  
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.perihal]?.v || ""}</td>
+        <td>${r.c[cfg.columns.asal]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+      `;
+    } else if (selected === "ACMK") {
+  
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.register]?.v || ""}</td>
+        <td>${r.c[cfg.columns.nama]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
+      `;
+    } else if (selected === "LD") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.instansi]?.v || ""}</td>
+        <td>${r.c[cfg.columns.perihal]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+      `;
+    } else if (selected === "LB") {
+
+      tr += `
+        <td>${no || ""}</td>
+        <td>${r.c[cfg.columns.jenis]?.v || ""}</td>
+        <td>${r.c[cfg.columns.uraian]?.v || ""}</td>
+        <td>${tahun || ""}</td>
+        <td>${jumlah || ""}</td>
       `;
     }
 
@@ -277,17 +650,23 @@ async function loadData() {
 }
 
 function toggleTable() {
-  renderTable = !renderTable;
+  const wrapper = document.getElementById("tableWrapper");
+  const icon = document.getElementById("toggleIcon");
+  const text = document.getElementById("toggleText");
 
-  const table = document.getElementById("dataTable");
+  wrapper.classList.toggle("open");
 
-  if (renderTable) {
-    table.style.display = "table";
+  const isOpen = wrapper.classList.contains("open");
+
+  if (isOpen) {
+    icon.style.transform = "rotate(180deg)";
+    text.innerText = "Sembunyikan Tabel";
+    renderTable = true;
+    loadData(); // isi tabel
   } else {
-    table.style.display = "none";
+    icon.style.transform = "rotate(0deg)";
+    text.innerText = "Lihat Tabel";
   }
-
-  loadData(); 
 }
 
 loadData();
