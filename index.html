@@ -177,6 +177,67 @@
     .table-wrapper.open {
       max-height: 1000px;
     }
+
+    /* ===== RESPONSIVE MOBILE ===== */
+    @media (max-width: 768px) {
+
+      .container {
+        padding: 10px;
+      }
+
+      /* HEADER */
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 15px;
+        font-size: 16px;
+      }
+
+      .header-right {
+        width: 100%;
+      }
+
+      .header-right select {
+        width: 100%;
+      }
+
+      /* CARD jadi ke bawah */
+      .cards {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      .card p {
+        font-size: 20px;
+      }
+
+      /* CHART */
+      .chart-container {
+        height: 260px; /* lebih kecil */
+        padding: 10px;
+      }
+
+      /* TOGGLE */
+      .toggle-wrapper {
+        font-size: 14px;
+      }
+
+      /* TABLE SCROLL */
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 700px; /* biar bisa scroll */
+        font-size: 12px;
+      }
+
+    }
   </style>
 </head>
 
